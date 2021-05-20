@@ -1,0 +1,23 @@
+{
+  "name": "vtt-move-model",
+  "version": "1.0.0",
+  "description": "moving a picture or shape on tabletop moves a character in a game",
+  "main": "detect.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/claydegruchy/vtt-move-model.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/claydegruchy/vtt-move-model/issues"
+  },
+  "homepage": "https://github.com/claydegruchy/vtt-move-model#readme",
+  "dependencies": {
+    "@google-cloud/vision": "^2.3.2"
+  }
+}

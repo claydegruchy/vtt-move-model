@@ -9,6 +9,8 @@ from shapedetector import ShapeDetector
 
 
 
+
+
 def detect_barcode(image):
     print("detect_barcode")
     # image = cv2.imread(args["image"])
@@ -22,7 +24,8 @@ def detect_barcode(image):
     ret3,image = cv2.threshold(image,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 
-    # image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
 
 # look for barcodes
@@ -47,7 +50,7 @@ def detect_barcode(image):
             0.5, (0, 0, 255), 2)
         # print the barcode type and data to the terminal
         print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeData))
-    return image
+    return [image,barcodes]
 
 
 
@@ -91,30 +94,67 @@ def detect_barcode(image):
 #
 #     # return image
 
+barcodes_history = {}
+offline=True
+
+
 while True:
 
     print("start")
 
-    # get the imamge
-    url = r'http://192.168.1.248:8080/live.jpg'
-    resp = requests.get(url, stream=True).raw
-    # convert it for use
-    image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    if offline:
+        image = cv2.imread('./test_images/live (1).jpg')
+    else:
+        # get the imamge
+        url = r'http://192.168.1.248:8080/live.jpg'
+        resp = requests.get(url, stream=True).raw
+        # convert it for use
+        image = np.asarray(bytearray(resp.read()), dtype="uint8")
+
+        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+
+
+# FISHEYE PREVENTION
+    # from defisheye import Defisheye
+    #
+    # dtype = 'stereographic'
+    # format = 'fullframe'
+    # fov = 85
+    # pfov = 80
+    #
+    #
+    # obj = Defisheye(image, dtype=dtype, format=format, fov=fov, pfov=pfov)
+    # image = obj.convert("img_out")
+    # # break
+
 
 
     # pass into the processor
-    image = detect_barcode(image)
+    image,barcodes = detect_barcode(image)
     # detect_shape(image)
 
 
+    for barcode in barcodes:
+        barcodeData = barcode.data.decode("utf-8")
+        print (barcodeData)
+        (x, y, w, h) = barcode.rect
+        if barcodeData in barcodes_history:
+            barcodes_history[barcodeData].insert(0,(x, y, w, h))
+        else:
+            barcodes_history[barcodeData] = [(x, y, w, h)]
+        barcodes_history[barcodeData] = barcodes_history[barcodeData][:5]
+        print (barcodes_history)
+    for barcode in barcodes_history:
+        print(barcode)
+
     # for testing
-    cv2.imshow('image',image)
+    # cv2.imshow('image',image)
     # cv2.waitKey(33)
     # if k==27:    # Esc key to stop
     #     break
-    cv2.waitKey(5)
+    # cv2.waitKey(5)
     # cv2.destroyAllWindows()
 
     print("done, sleeping")
-    time.sleep(0.2)
+    print(barcodes)
+    time.sleep(0.5)
