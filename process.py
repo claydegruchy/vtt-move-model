@@ -49,6 +49,34 @@ def detect_barcode(image):
     return [image, barcodes]
 
 
+def save(image):
+    print("saving snapshot")
+    cv2.imwrite("./snapshot.jpg", image)
+
+
+def resize(image, top, bottom):
+    height, width, channels = image.shape
+    dim = int(max(height, width) * .05)
+
+    if not top or not bottom:
+        return image
+
+    x1, y1 = top
+    print("top", top)
+    x2, y2 = bottom
+    print("bottom", bottom)
+    print(dim)
+    x1 = max(0, x1 - dim)
+    x2 = min(width, x2 + dim)
+    print(x1, x2)
+
+    y1 = max(0, y1 - dim)
+    y2 = min(height, y2 + dim)
+    print(y1, y2)
+
+    return image[y1:y2, x1:x2]
+
+
 barcodes_history = {}
 barcodes_locations = {}
 
@@ -62,15 +90,15 @@ test_images = [
 ]
 
 cycle = 0
+offline_cycle = 0
 
 while True:
-
     print("starting detection cycle")
     if offline:
-        image = cv2.imread(test_images[cycle])
-        cycle += 1
-        if cycle > 2:
-            cycle = 0
+        image = cv2.imread(test_images[offline_cycle])
+        offline_cycle += 1
+        if offline_cycle > 2:
+            offline_cycle = 0
     else:
         # get the imamge
         try:
@@ -123,42 +151,45 @@ while True:
     # limit the size of the dict to 5
         barcodes_history[barcodeText]["locations"] = barcodes_history[barcodeText]["locations"][:5]
 
-
-
-
-    for barcode in list (barcodes_history.keys()):
+    for barcode in list(barcodes_history.keys()):
         # checks to see if this is an outdated location
         if not barcodes_history[barcode]["info"]["updated"]:
-            print("looks like", barcode, "could not be found")
+            print("looks like", barcode, "could not be found for the",
+                  barcodes_history[barcode]["info"]["failures"], "time")
             barcodes_history[barcode]["info"]["failures"] += 1
 
         barcodes_history[barcode]["info"]["updated"] = False
 
-        if barcodes_history[barcode]["info"]["failures"] > 5:
-            print("looks like", barcode,
-                  "has been missing a while, clearing its oldest location")
-            barcodes_history[barcode]["locations"] = barcodes_history[barcode]["locations"][:-1]
-            barcodes_history[barcode]["info"]["failures"] = 0
-
-        if not barcodes_history[barcode]["locations"]:
-            print(barcode, "has no locations, removing")
+        if barcodes_history[barcode]["info"]["failures"] > 20:
             del barcodes_history[barcode]
+            del barcodes_locations[barcode]
             continue
 
         # get the average of the centres, put it into the accessible locations
         barcodes_locations[barcode] = tuple(
             [int(sum(ele) / len(barcodes_history[barcode]["locations"])) for ele in zip(*barcodes_history[barcode]["locations"])])
-        if not barcodes_locations[barcode]:
-            print(barcode, "has no location. FIXME")
-            continue
         # highlight that location in the GUI
-        cv2.circle(original, barcodes_locations[barcode], 30, (0, 0, 255), 2)
+        cv2.circle(original, barcodes_locations[barcode], 20, (0, 0, 255), 2)
+
+        cv2.circle(original, barcodes_locations[barcode], (
+            20 - barcodes_history[barcode]["info"]["failures"]), (0, 255, 0), 2)
+        cv2.putText(original, "{}".format(barcode), tuple(map(sum, zip(
+            barcodes_locations[barcode], (-40, 40)))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
 # draw boundry
     if "top" in barcodes_locations and "bottom" in barcodes_locations:
 
         cv2.rectangle(
             original, barcodes_locations["top"], barcodes_locations["bottom"], (0, 0, 255), 10)
+
+        snapshot = resize(
+            original, barcodes_locations["top"], barcodes_locations["bottom"])
+
+        if cycle > 5:
+            cycle = 0
+            print("writing image of board")
+            save(snapshot)
+
     # for testing
     cv2.imshow('original ', original)
     cv2.waitKey(33)
@@ -170,5 +201,8 @@ while True:
     r = requests.post('http://127.0.0.1:5000/api/update.json',
                       json=barcodes_locations)
 
+    # ssave image
+
     print("done, sleeping")
+    cycle += 1
     time.sleep(0.5)
