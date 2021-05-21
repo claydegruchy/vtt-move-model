@@ -8,9 +8,6 @@ import imutils
 from shapedetector import ShapeDetector
 
 
-
-
-
 def detect_barcode(image):
     print("detect_barcode")
     # image = cv2.imread(args["image"])
@@ -19,19 +16,15 @@ def detect_barcode(image):
 # make black and white
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # image = cv2.threshold(image, 6, 255, cv2.THRESH_BINARY)[1]
-    # blur = cv2.GaussianBlur(image,(5,5),0)
+    # image = cv2.GaussianBlur(image,(5,5),0)
     # add an adaptive threshhold
-    ret3,image = cv2.threshold(image,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-
-
+    ret3, image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
 
 # look for barcodes
     barcodes = pyzbar.decode(image)
-
-
 
     # loop over the detected barcodes
     for barcode in barcodes:
@@ -42,68 +35,41 @@ def detect_barcode(image):
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
         # the barcode data is a bytes object so if we want to draw it on
         # our output image we need to convert it to a string first
-        barcodeData = barcode.data.decode("utf-8")
+        barcodeText = barcode.data.decode("utf-8")
         barcodeType = barcode.type
         # draw the barcode data and barcode type on the image
-        text = "{} ({})".format(barcodeData, barcodeType)
-        cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
-            0.5, (0, 0, 255), 2)
+        text = "{} ({})".format(barcodeText, barcodeType)
+        cv2.putText(image, text, (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         # print the barcode type and data to the terminal
-        print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeData))
-    return [image,barcodes]
 
+        print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeText))
+    return [image, barcodes]
 
-
-# def detect_shape(image):
-#     # doesnt work
-#     print("detect_shape")
-#         # convert the resized image to grayscale, blur it slightly,
-#     # and threshold it
-#     ratio = 1
-#
-#     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-#     thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
-#
-#     # find contours in the thresholded image and initialize the
-#     # shape detector
-#     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-#         cv2.CHAIN_APPROX_SIMPLE)
-#     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
-#     sd = ShapeDetector()
-#
-#     # loop over the contours
-#     for c in cnts:
-#         # compute the center of the contour, then detect the name of the
-#         # shape using only the contour
-#         c.astype('int8')
-#
-#         M = cv2.moments(c)
-#         cX = int((M["m10"] / M["m00"]) * ratio)
-#         cY = int((M["m01"] / M["m00"]) * ratio)
-#         shape = sd.detect(c)
-#
-#         # multiply the contour (x, y)-coordinates by the resize ratio,
-#         # then draw the contours and the name of the shape on the image
-#         c = c.astype("float")
-#         c *= ratio
-#         c = c.astype("int")
-#         cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-#         cv2.putText(image, shape, (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
-#             0.5, (255, 255, 255), 2)
-#
-#     # return image
 
 barcodes_history = {}
-offline=True
+barcodes_locations = {}
 
+offline = True
+
+
+test_images = [
+    './test_images/live (1).jpg',
+    './test_images/live (2).jpg',
+    './test_images/live (3).jpg'
+]
+
+image_int = 0
 
 while True:
 
-    print("start")
+    print("starting detection cycle")
 
     if offline:
-        image = cv2.imread('./test_images/live (1).jpg')
+        image = cv2.imread(test_images[image_int])
+        image_int += 1
+        if image_int > 2:
+            image_int = 0
     else:
         # get the imamge
         url = r'http://192.168.1.248:8080/live.jpg'
@@ -113,7 +79,7 @@ while True:
 
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
 
-
+    orignal = image
 # FISHEYE PREVENTION
     # from defisheye import Defisheye
     #
@@ -127,34 +93,46 @@ while True:
     # image = obj.convert("img_out")
     # # break
 
-
-
     # pass into the processor
-    image,barcodes = detect_barcode(image)
-    # detect_shape(image)
+    image, barcodes = detect_barcode(image)
 
-
+# process eacch barcode
     for barcode in barcodes:
-        barcodeData = barcode.data.decode("utf-8")
-        print (barcodeData)
-        (x, y, w, h) = barcode.rect
-        if barcodeData in barcodes_history:
-            barcodes_history[barcodeData].insert(0,(x, y, w, h))
-        else:
-            barcodes_history[barcodeData] = [(x, y, w, h)]
-        barcodes_history[barcodeData] = barcodes_history[barcodeData][:5]
-        print (barcodes_history)
-    for barcode in barcodes_history:
-        print(barcode)
+        # decode
+        barcodeText = barcode.data.decode("utf-8")
 
+        # get the rect
+        (x, y, w, h) = barcode.rect
+
+        # find the centre of the current snapshot
+        centre = (x + w // 2,  y + h // 2)
+
+        # highlight that location in the GUI
+        cv2.circle(orignal  , centre, 30, (0, 0, 255), 2)
+
+    # if the code is not in the dict, add it
+        if barcodeText not in barcodes_history:
+            barcodes_history[barcodeText] = []
+        # insert the centre of the current snapshot
+        barcodes_history[barcodeText].insert(0, centre)
+    # limit the size of the dict to 5
+        barcodes_history[barcodeText] = barcodes_history[barcodeText][:5]
+
+    for barcode in barcodes_history:
+        # get the average of the centres, put it into the accessible locations
+        barcodes_locations[barcode] = tuple(
+            [int(sum(ele) / len(barcodes_history[barcode])) for ele in zip(*barcodes_history[barcode])])
+
+# draw boundry
+    cv2.rectangle(
+        orignal , barcodes_locations["top"], barcodes_locations["bottom"], (0, 0, 255), 10)
     # for testing
-    # cv2.imshow('image',image)
-    # cv2.waitKey(33)
+    cv2.imshow('orignal ', orignal  )
+    cv2.waitKey(33)
     # if k==27:    # Esc key to stop
     #     break
     # cv2.waitKey(5)
     # cv2.destroyAllWindows()
 
     print("done, sleeping")
-    print(barcodes)
     time.sleep(0.5)
