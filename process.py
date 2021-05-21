@@ -74,7 +74,10 @@ def resize(image, top, bottom):
     y2 = min(height, y2 + dim)
     print(y1, y2)
 
-    return image[y1:y2, x1:x2]
+
+    image = cv2.rotate(src, cv2.cv2.ROTATE_90_CLOCKWISE)
+    image = image[y1:y2, x1:x2]
+    return image
 
 
 barcodes_history = {}
