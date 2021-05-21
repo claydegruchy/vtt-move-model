@@ -75,8 +75,8 @@ def resize(image, top, bottom):
     print(y1, y2)
 
 
-    image = cv2.rotate(src, cv2.cv2.ROTATE_90_CLOCKWISE)
     image = image[y1:y2, x1:x2]
+    image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
     return image
 
 

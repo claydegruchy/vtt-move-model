@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,send_file
 
 app = Flask(__name__)
 
@@ -22,6 +22,12 @@ def update():
 def read():
     print(latest.data)
     return jsonify(latest.data)
+
+
+@app.route('/api/snapshot.jpg', methods=['GET'])
+def send():
+    return send_file("snapshot.jpg", mimetype='image/jpeg')
+
 
 
 print("ok")
