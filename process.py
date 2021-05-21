@@ -134,10 +134,6 @@ while True:
     # cv2.waitKey(5)
     # cv2.destroyAllWindows()
     print("posting to endpoint")
-    # j = json.dumps(barcodes_locations)
-    # loaded_r = json.loads(r)
-
-
     r = requests.post('http://127.0.0.1:5000/api/update.json', json=barcodes_locations)
 
     print("done, sleeping")
