@@ -19,6 +19,9 @@ ap.add_argument("-nr", "--noreader", required=False,
 ap.add_argument("-ns", "--noserver", required=False,
     help="dont attempt to post to the server", action='store_true')
 
+ap.add_argument("-fq", "--frequency", required=False, type=float,
+    help="how fast to refresh", default=0.5)
+
 
 args = vars(ap.parse_args())
 
@@ -225,4 +228,4 @@ while True:
 
     print("done, sleeping")
     cycle += 1
-    time.sleep(0.5)
+    time.sleep(args["frequency"])
