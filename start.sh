@@ -1,3 +1,4 @@
 echo "starting server and proccessor"
-(nodemon --exec flask run & nodemon --exec python3 process.py)
+export FLASK_APP=server.py
+(nodemon --exec python3 process.py -nr & nodemon --exec flask run)
 echo  "exiting"

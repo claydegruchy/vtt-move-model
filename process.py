@@ -11,16 +11,16 @@ import argparse
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--folder", required=False,
-    help="path to input image")
+                help="path to input image")
 
 ap.add_argument("-nr", "--noreader", required=False,
-    help="dont look for the video/image source device, use local files", action='store_true')
+                help="dont look for the video/image source device, use local files", action='store_true')
 
 ap.add_argument("-ns", "--noserver", required=False,
-    help="dont attempt to post to the server", action='store_true')
+                help="dont attempt to post to the server", action='store_true')
 
 ap.add_argument("-fq", "--frequency", required=False, type=float,
-    help="how fast to refresh", default=0.5)
+                help="how fast to refresh", default=0.5)
 
 
 args = vars(ap.parse_args())
@@ -93,7 +93,6 @@ def resize(image, top, bottom):
     y2 = min(height, y2 + dim)
     print(y1, y2)
 
-
     image = image[y1:y2, x1:x2]
     image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
     return image
@@ -131,7 +130,7 @@ while True:
 
             image = cv2.imdecode(image, cv2.IMREAD_COLOR)
         except Exception as e:
-            print("could not contact server")
+            print("could not contact image server")
             continue
 
     original = image
@@ -210,19 +209,23 @@ while True:
         if cycle > 52:
             cycle = 0
             print("writing image of board")
-            save(snapshot)
+            # save(snapshot)
 
     # for testing
     cv2.imshow('original ', original)
     cv2.waitKey(33)
-    # if k==27:    # Esc key to stop
-    #     break
-    # cv2.waitKey(5)
-    # cv2.destroyAllWindows()
+
+
+
     print("posting to endpoint")
     if not args["noserver"]:
-        r = requests.post('http://127.0.0.1:5000/api/update.json',
-                          json=barcodes_locations)
+        try:
+            r = requests.post('http://127.0.0.1:5000/api/update.json',
+                              json=barcodes_locations)
+        except Exception as e:
+            print("could not coord server")
+            continue
+
 
     # ssave image
 
