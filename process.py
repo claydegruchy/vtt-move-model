@@ -10,11 +10,15 @@ import argparse
 
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-f", "--folder", required=True,
+ap.add_argument("-f", "--folder", required=False,
     help="path to input image")
 
-ap.add_argument("-off", "--offline", required=False,
-    help="path to input image", action='store_true')
+ap.add_argument("-nr", "--noreader", required=False,
+    help="dont look for the video/image source device, use local files", action='store_true')
+
+ap.add_argument("-ns", "--noserver", required=False,
+    help="dont attempt to post to the server", action='store_true')
+
 
 args = vars(ap.parse_args())
 
@@ -62,7 +66,8 @@ def detect_barcode(image):
 
 def save(image):
     print("saving snapshot")
-    cv2.imwrite(args["folder"]+"snapshot.jpg", image)
+    print(image)
+    cv2.imwrite("./snapshot.jpg", image)
 
 
 def resize(image, top, bottom):
@@ -94,7 +99,7 @@ def resize(image, top, bottom):
 barcodes_history = {}
 barcodes_locations = {}
 
-offline = args["offline"]
+noreader = args["noreader"]
 
 
 test_images = [
@@ -104,15 +109,15 @@ test_images = [
 ]
 
 cycle = 0
-offline_cycle = 0
+noreader_cycle = 0
 
 while True:
     print("starting detection cycle")
-    if offline:
-        image = cv2.imread(test_images[offline_cycle])
-        offline_cycle += 1
-        if offline_cycle > 2:
-            offline_cycle = 0
+    if noreader:
+        image = cv2.imread(test_images[noreader_cycle])
+        noreader_cycle += 1
+        if noreader_cycle > 2:
+            noreader_cycle = 0
     else:
         # get the imamge
         try:
@@ -199,7 +204,7 @@ while True:
         snapshot = resize(
             original, barcodes_locations["top"], barcodes_locations["bottom"])
 
-        if cycle > 5:
+        if cycle > 52:
             cycle = 0
             print("writing image of board")
             save(snapshot)
@@ -212,8 +217,9 @@ while True:
     # cv2.waitKey(5)
     # cv2.destroyAllWindows()
     print("posting to endpoint")
-    r = requests.post('http://127.0.0.1:5000/api/update.json',
-                      json=barcodes_locations)
+    if not args["noserver"]:
+        r = requests.post('http://127.0.0.1:5000/api/update.json',
+                          json=barcodes_locations)
 
     # ssave image
 
