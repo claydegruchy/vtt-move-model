@@ -6,6 +6,17 @@ import time
 from pyzbar import pyzbar
 import imutils
 from shapedetector import ShapeDetector
+import argparse
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-f", "--folder", required=True,
+    help="path to input image")
+
+ap.add_argument("-off", "--offline", required=False,
+    help="path to input image", action='store_true')
+
+args = vars(ap.parse_args())
 
 
 def detect_barcode(image):
@@ -51,7 +62,7 @@ def detect_barcode(image):
 
 def save(image):
     print("saving snapshot")
-    cv2.imwrite("./snapshot.jpg", image)
+    cv2.imwrite(args["folder"]+"snapshot.jpg", image)
 
 
 def resize(image, top, bottom):
@@ -83,7 +94,7 @@ def resize(image, top, bottom):
 barcodes_history = {}
 barcodes_locations = {}
 
-offline = False
+offline = args["offline"]
 
 
 test_images = [
